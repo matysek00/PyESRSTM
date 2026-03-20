@@ -1,5 +1,5 @@
 import numpy as np 
-from .units import pA 
+from ..misc.units import pA 
 def current(rho, G):
     NFT  = rho.shape[-1]
     Ndim = rho.shape[0]

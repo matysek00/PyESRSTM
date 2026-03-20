@@ -1,11 +1,11 @@
 import numpy as np
 
-from .rates import rates, sum_rates
+from ..Trasport.rates import rates, sum_rates
 from .QME import QME, QME_matrix
-from .Curent import current
+from ..Trasport.Curent import current
 
-from .Electrode import Electrode
-from .QD import QD
+from ..Electrode.Electrode import Electrode
+from ..QD import QD
 
 def ESR(EL_left: Electrode, EL_right: Electrode, 
         dot: QD, frequencies: np.ndarray, NFL: int=0, NFR: int=0, return_Gs: bool = False):

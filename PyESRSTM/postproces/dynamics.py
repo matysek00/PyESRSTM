@@ -1,6 +1,6 @@
 import numpy as np
 
-from .rates import sum_rates
+from .. import sum_rates
 
 def Bexch(GL, GR, theta, n=0):
     G = sum_rates(GL, GR)

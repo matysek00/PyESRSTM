@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.linalg import solve
 
-from .units import time_unit
+from ..misc.units import time_unit
 
 def QME_freq_cont(frequency, Ndim, NF):
     """The frequency contribution to QME 

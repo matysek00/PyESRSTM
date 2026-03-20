@@ -1,7 +1,7 @@
 import numpy as np  
 from scipy.integrate import simpson, romb, quad_vec, quad
 
-from .units import Hartree
+from ..misc.units import Hartree
 
 class Electrode():
 

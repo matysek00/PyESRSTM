@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.special import jv
 
-from .units import *
-from .Electrode import Electrode
+from ..misc.units import *
+from .. import Electrode
 
 def Bessel_drive(z: float, Adrive: float, Jtol: float = 1e-4, vmax: int = int(1e6), verbose: str = False):
     """Find the Bessel functions J_v(z) for v = 0,1,...,vmax, and find the cutoff vbes such that the cumulative sum of |J_v(z)| converges, meaning no further value of J_v contributes to the sume singifincanltly. Then compute the convolution 

@@ -1,7 +1,7 @@
 import numpy as np
 from quspin.basis import spin_basis_1d, tensor_basis
 from quspin.operators import hamiltonian
-from .units import * 
+from ..misc.units import * 
 
 
 from .QuSpinConvertors import QuSpinConvertors
