@@ -8,7 +8,7 @@ from .QuSpinConvertors import QuSpinConvertors
 
 class QD(QuSpinConvertors):
 
-    def __init__(self, eps: float, U: float, Spin: np.ndarray,  Hlocal: np.ndarray, Gyro: np.ndarray, Jexch: list = [], Stephen: np.ndarray=None, StephenAx: np.ndarray = None, cuttof_energy: float = np.inf):
+    def __init__(self, eps: float, U: float, Spin: np.ndarray,  Hlocal: np.ndarray, Gyro: np.ndarray, Jexch: list = [], Stephen: np.ndarray=None, StephenAx: np.ndarray = None, cuttof_energy: float = np.inf, ):
         
         Spin = np.array(Spin, dtype=float)
         Hlocal = np.array(Hlocal, dtype=float)
@@ -55,8 +55,21 @@ class QD(QuSpinConvertors):
         self.cutoff_energy = cuttof_energy
 
         # Diagonalize the Hamiltonian
-        self.setup_ham(Spin, Jexch, Hlocal)       
-        self.Delta = self.Energies[None,:] - self.Energies[:,None]
+        self.setup_ham(Spin, Jexch, Hlocal)   
+
+    def remove_states(self, states: np.array):
+        useful = np.ones(self.Nstate, dtype=bool)
+        useful[states] = False
+
+        self.Nstate = int(sum(useful))
+        self.Energies = self.Energies[useful]
+        self.Occupancy = self.Occupancy[useful]
+        
+        self.Spin_central = self.Spin_central[useful]
+        self.Spin_total = self.Spin_total[useful]
+
+        self.lamb = self.lamb[np.ix_(useful, useful, [0, 1])]
+        self.Delta = self.Delta[np.ix_(useful, useful)]
 
     def setup_ham(self, Spin, Jexch, Hlocal):
         # first solve including all spins (asume the central atoms has a finite spin)
@@ -131,6 +144,8 @@ class QD(QuSpinConvertors):
         self.basis_neutral = basis_neutral
         self.eigen_neutral = V_neutral
         self.eigen_charged = V_charged
+
+        self.Delta = self.Energies[None,:] - self.Energies[:,None]
     
     def Spin(self, state_idx, theta=0, phi=0, spin_idx=None):
         """Calculates spin for a given state. 
