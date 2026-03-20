@@ -1,0 +1,28 @@
+********************************************************************************
+*******************************Hamiltonian Input*******************************
+********************************************************************************
+2                                       ! Number of spins
+----------------------------Spin Properties: Spin 0----------------------------
+0.50000000                              ! Spin
+0.00000000  0.00000000  0.00000000  0.00000000 ! Stephen Coefficients: B20 B22 B40 B42
+0.00000000  0.00000000  1.00000000      ! Stephen Axis
+0.5  0.00000000  0.00000000      ! Local Magnetic Field: Hx Hy Hz
+2.00000000  2.00000000  2.00000000      ! Local gyrometric factor: Gxx Gyy Gzz
+----------------------------Spin Properties: Spin 1----------------------------
+0.50000000                              ! Spin
+0.00000000  0.00000000  0.00000000  0.00000000 ! Stephen Coefficients: B20 B22 B40 B42
+0.00000000  0.00000000  1.00000000      ! Stephen Axis
+0.5  0.00000000  0.00000000      ! Local Magnetic Field: Hx Hy Hz
+2.00000000  2.00000000  2.00000000      ! Local gyrometric factor: Gxx Gyy Gzz
+-----------------------------Exchange Interactions-----------------------------
+1                                       ! Number of connected pairs
+1 2
+-5.0, -5.0, -5.0
+----------------------------Electronic Interactions----------------------------
+-5.00000000                             ! QD energy (meV)
+100.00000000                            ! Hubbard interaction U(meV)
+-------------------------------------Output-------------------------------------
+Hamiltonian.output                      ! Output file for the Hamiltonian
+8                                       ! Number of states to print into Spin_distribution.dat
+.true.                                  ! Write prediagonalized Hamiltonian to PD_HAMIL.dat
+.true.                                  ! Write eigenvectors to EIGENVEC.dat

@@ -1,0 +1,37 @@
+********************************************************************************
+*********************************Floquet Input*********************************
+********************************************************************************
+2                                     ! Max order of the Fourier series
+16.50000000                             ! Frequency of the driving field (GHz)
+-------------------------------Electrode set-up -------------------------------
+0.00200000                              ! Gamma_R_0 (meV)
+0.00010000                              ! Gamma_L_0 (meV)
+(0.00000000,0.00000000)                 ! A_R
+(0.00000000,0.00000000)                 ! A_L
+0.00000000                              ! Phase of the driving field (radians)
+1000.00000000                            ! Cutoff for integral Lambshift (meV)
+(0.00200000,0.00000000)                 ! Broadening of Green's function (meV)
+500000                                  ! Number of points for I11 and I21
+1                                       ! Number of orbital, 1 will not use any Diego Lehman coeff
+--------------------Bias, temperature, and spin polarization--------------------
+0                                       ! 0 EF closer to muR if gR>>gL, 1 EF to muL, 2 Ef at mu with gamma>> (UNUSED)
+0.00000000                             ! Right elctrode bias (mV)
+-30.00000000                            ! Left electrode bias (mV)
+0.50000000                              ! Temperature (K)
+0.00000000                              ! Right electrode spin polarization
+0.50000000                              ! Left electrode spin polarization
+0                                       ! Current measurement: 0 is left and 1 is right electrode
+0
+0
+--------------------------------Bessel function--------------------------------
+0.00000000                              ! B_R strengt of the time depenndet pulse for right electrode
+0.00000000                              ! B_L strengt of the time depenndet pulse for left electrode
+3                                     ! Max order of Bessel function in both directions
+2
+-------------------------------------Output-------------------------------------
+.true.                                  ! Write populations
+.true.                                  ! Write coherences
+.true.                                  ! Write spin
+--------------------------------------Misc--------------------------------------
+.false.                                 ! Redimension the Hamiltonian
+4                                       ! Redimension number - must include empty states for non-zero current
