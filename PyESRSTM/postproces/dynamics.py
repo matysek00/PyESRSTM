@@ -23,8 +23,8 @@ def Szacc(GL, GR, rho, Pl, theta, n=0):
     szacc = 0
 
     for m in range(max(n-nmax,-nmax), min(n+nmax,nmax)+1):
-        G0 = 2 * GL[2,0,0,2, n-m+nmax] * Pl / (1 - Pl*np.cos(theta))
-        G2 = 2 * GL[3,0,0,3, n-m+nmax] * Pl / (1 + Pl*np.cos(theta))
+        G0 = (GL[2,0,0,2, n-m+nmax] + GL[2,0,0,2, n-m+nmax]) * Pl / (1 - Pl*np.cos(theta))
+        G2 = (GL[3,0,0,3, n-m+nmax] + GL[3,0,0,3, n-m+nmax]) * Pl / (1 + Pl*np.cos(theta))
     
         G1 = GL[0,3,3,0, n-m+nmax] - GL[1,3,3,1, n-m+nmax] + GL[0,2,2,0, n-m+nmax] - GL[1,2,2,1,n-m+nmax]
 

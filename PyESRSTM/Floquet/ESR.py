@@ -122,7 +122,7 @@ def guess_p0(x, y, x0):
     Ia = gamma/np.abs(gamma)*Ia # fix sign
     gamma = np.abs(gamma)
 
-    p0 = [x0, gamma, Is, Ia, a, b , 0., 0.]
+    p0 = np.array([x0, gamma, Is, Ia, a, b , 0., 0.])
     #upper_bound = [x0 + size/2, 1.,  1.1*np.abs(Ia),  1.1*np.abs(Ia), np.inf, np.inf, np.inf, np.inf]
     #lower_bound = [x0 - size/2, 0., -1.1*np.abs(Ia), -1.1*np.abs(Ia), np.inf, np.inf, np.inf, np.inf]
     
