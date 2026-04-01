@@ -239,7 +239,7 @@ class QD(QuSpinConvertors):
                 Spins[j,k,1] = k+1
                 for i, theta, phi in zip([0,1,2], [np.pi/2, np.pi/2 ,0], [0, np.pi/2, 0]):  
                     # xyz
-                    Spins[j,k,i+2] =self.Spin(j, theta=theta, phi=phi, spin_idx=k)[0]
+                    Spins[j,k,i+2] = self.Spin(j, theta=theta, phi=phi, spin_idx=k)[0]
         
         return Spins
     
