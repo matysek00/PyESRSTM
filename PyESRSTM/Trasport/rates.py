@@ -151,36 +151,13 @@ def rates(QD, Electrode, frequency: float, Nfour: int, verbose: bool = False):
     active_four = int(min(Nfour, (vs.shape[0]-1)/2))
 
     for j in range(Nstate):
-        joccup = QD.Occupancy == QD.Occupancy[j]
         for u in range(Nstate):
-            uoccup = QD.Occupancy == QD.Occupancy[u]
-
 
             if np.all(lamb[u,j,:] == 0) and np.all(lamb[j,u,:] == 0):
                 continue
-            # the 
-
+      
             Ifplus, Ifminus = Electrode.fermiIntegral(QD.Delta[u,j], floq_energies)
             Lvluj, Ljulv = orbital_overlap(j, u,lamb, g)
-            # removing rates that do not contribute 
-            #Ljulv[~uoccup] = 0. 
-            #Lvluj[ :, ~uoccup] = 0. 
-            #Lvluj[~joccup] = 0. 
-            #Ljulv[ :, ~joccup] = 0. 
-            
-            #print(j, u, QD.Delta[u,j], Ifplus)
-            #print(j, u, QD.Delta[u,j], Ifminus)
-            #print()
-            
-    #        print(j+1,  u+1, Ifplus, Ifminus)
-
-            #idx1 = np.array(np.where(Lvluj)).T
-            #idx2 = np.array(np.where(Ljuvl)).T
-
-            #for a in idx1: 
-            #    print('vluj ', *(a+1), u+1, j+1, np.round(Lvluj[tuple(a)],12))
-            #for a in idx2: 
-            #    print('juvl ', j+1, u+1, *(a[::-1]+1), np.round(Ljuvl[tuple(a)], 12))
             
             for n in range(-active_four, active_four+1):
                 # Ensure bounds are respected for Kbess and Ifplus/Ifminus
@@ -191,15 +168,6 @@ def rates(QD, Electrode, frequency: float, Nfour: int, verbose: bool = False):
                     n_abs = abs(n)
                     FouirC_plus = np.sum(np.conj(Kbess[n_abs:]) * Kbess[:len(Kbess)-n_abs] * Ifplus[n_abs:])
                     FouirC_minus = np.sum(np.conj(Kbess[n_abs:]) * Kbess[:len(Kbess)-n_abs] * Ifminus[n_abs:])
-                
-                #print(n, nidx,Kbess[::-1][:n-1],Kbess[n:])
-                #if n == 0:  
-                #    # annoying if n=0 [:-n] becomes empty
-                #    FouirC_plus  = np.sum(np.conj(Kbess[::-1]) * Kbess * Ifplus)
-                #    FouirC_minus = np.sum(np.conj(Kbess[::-1]) * Kbess * Ifminus)
-                #else:
-                #    FouirC_minus = np.sum(np.conj(Kbess[:n:-1]) * Kbess[n:] * Ifminus[:n:-1])
-                #    FouirC_plus  = np.sum(np.conj(Kbess[:n:-1]) * Kbess[n:] *  Ifplus[n:])
 
                 nidx = n + Nfour
                 Gplus[:,:,j,u,nidx] = .5*Lvluj*FouirC_plus
