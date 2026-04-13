@@ -8,16 +8,18 @@ from ..Electrode.Electrode import Electrode
 from ..QD import QD
 
 def ESR(EL_left: Electrode, EL_right: Electrode, 
-        dot: QD, frequencies: np.ndarray, NFL: int=0, NFR: int=0, return_Gs: bool = False):
+        dot: QD, frequencies: np.ndarray, NFL: int=0, NFR: int=0, return_Gs: bool = False, rate_freq=None):
     """Calculatutes ESR signal along a range of frequencies
 
     Parameters:
     EL_left, EL_right: (Electrode) 
         Electrodes the 
-
+    
     """
-    freqL = 0 if EL_left.Vrf ==0 else np.max(np.abs(frequencies))
-    freqR = 0 if EL_right.Vrf ==0 else np.max(np.abs(frequencies))
+    if rate_freq is None:
+        rate_freq = np.max(np.abs(frequencies))
+    freqL = 0 if EL_left.Vrf ==0 else rate_freq
+    freqR = 0 if EL_right.Vrf ==0 else rate_freq
     
     GLminus, GLplus = rates(dot, EL_left, freqL, NFL)
     GRminus, GRplus = rates(dot, EL_right, freqR, NFR)
