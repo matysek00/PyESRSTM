@@ -108,11 +108,14 @@ class QuSpinConvertors():
             indx = J[1:]
             indx.sort() # sorting to not fuck up the indicies
             # indx now identifies the to coordinates of our interactions. 
-            for coord, Ji in zip(QuSpinConvertors.coords, J[0]): 
-                string = string_base.copy()
+            
+            for icoord, Ji in zip(QuSpinConvertors.coords, J[0]): 
                 # looping over directions
-                string.insert(indx[1], coord)
-                string.insert(indx[0], coord)
-                interactions.append([''.join(string), [[.25*Ji,0,0]]])
+                for jcoord, Jij in zip(QuSpinConvertors.coords, Ji): 
+                    string = string_base.copy()
+                    string.insert(indx[1], jcoord)
+                    string.insert(indx[0], icoord)
+                    interactions.append([''.join(string), [[.25*Jij,0,0]]])
+
         return interactions 
     

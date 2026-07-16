@@ -7,6 +7,35 @@ from ..misc.units import *
 from .QuSpinConvertors import QuSpinConvertors
 
 class QD(QuSpinConvertors):
+    """Class for a quantum dot with a central spin and N-1 other spins.
+    The Hamiltonian is given by:
+    H = \sum_i \mu_B B \cdot S_i + \sum_{i<j} J_{ij} S_i \cdot S_j, 
+    B is the magnetic field, S_i is the effective spin of the i-th atom, and J_{ij} is the exchange interaction between the i-th and j-th atom.
+    The effective spin of the i-th atom is given by S_i = g_i \cdot S_i, where g_i is the g-tensor of the i-th atom.
+
+    Parameters
+    ----------
+    eps : float
+        The energy of the quantum dot [meV].
+    U : float
+        The charging energy of the quantum dot [meV].
+    Spin : array_like(Nspin,)
+        The  spin of the atoms in the quantum dot. The first element is the central spin, and the rest are the other spins.
+        First element must be 1/2. The rest can be any half integer. 
+    Hlocal : array_like(Nspin, 3)
+        The local magnetic field on each spin in the quantum dot [T]. 
+    Gyro : array_like(Nspin, 3) or (Nspin, 3, 3)
+        The g-tensor of the atoms in the quantum dot. Should be shape (Nspin, 3) for diagonal g-tensors, or (Nspin, 3, 3) for full g-tensors.
+    Jexch : list of tuples (array_like(3,) or array_like(3,3), int, int)
+        The exchange interaction between the atoms in the quantum dot [GHz]. Each tuple contains the exchange interaction tensor, and the indices of the two atoms. 
+        The exchange interaction tensor should be shape (3,) for diagonal exchange interactions, or (3, 3) for full exchange interactions.
+    Stephen : array_like(Nspin, 4)
+        The Stephen tensor of the atoms in the quantum dot. Should be shape (Nspin, 4). If None, it will be set to zero.
+    StephenAx : array_like(Nspin, 3)
+        The principal axes of the Stephen tensor of the atoms in the quantum dot. Should be shape (Nspin, 3). If None, it will be set to the z-axis.
+    cuttof_energy : float
+        The cutoff energy for the quantum dot. States with energy above this value will be ignored. [meV]
+    """
 
     def __init__(self, eps: float, U: float, Spin: np.ndarray,  Hlocal: np.ndarray, Gyro: np.ndarray, Jexch: list = [], Stephen: np.ndarray=None, StephenAx: np.ndarray = None, cuttof_energy: float = np.inf, ):
         
@@ -28,22 +57,40 @@ class QD(QuSpinConvertors):
             StephenAx[:,2] = 1
 
         assert Hlocal.shape == (Nspin, 3), f'Hlocal should be shape (Nspin, 3), where Nspin={Nspin}, got {Hlocal.shape}'
-        assert Gyro.shape == (Nspin, 3), f'Gyro should be shape (Nspin, 3), where Nspin={Nspin}, got {Gyro.shape}'
+        assert Gyro.shape == (Nspin, 3) or Gyro.shape == (Nspin, 3, 3), f'Gyro should be shape (Nspin, 3), where Nspin={Nspin}, got {Gyro.shape}'
         assert StephenAx.shape == (Nspin, 3), f'nAx should be shape (Nspin, 3), where Nspin={Nspin}, got {StephenAx.shape}'
         assert Stephen.shape == (Nspin, 4), f'Stephen should be shape (Nspin, 4), where Nspin={Nspin}, got {Stephen.shape}'
         
+        # expand Gyro to 3x3 if it is only a diagonal matrix
+        Gyro_exp = np.empty((Nspin, 3, 3))
+        if Gyro.ndim == 2:
+            for i in range(Nspin):
+                Gyro_exp[i] = np.diag(Gyro[i])
+        else:
+            Gyro_exp = Gyro
+        Gyro = Gyro_exp
+
         #Jexch_mat = np.zeros((Nspin, Nspin, 3)) if Jexch_mat == None else Jexch_mat
         #assert Jexch_mat.shape == (Nspin, Nspin, 3), f'Jexch_mat should be shape (Nspin,  Nspin, 3), where Nspin={Nspin}, got {Jexch_mat.shape}'
         for J in Jexch: 
-            Jexhc_err_mesage = f'Jexch must be of the followin form [[np.array([Jx,Jy,Jz],i,j], ...] got {Jexch}'
-            assert isinstance(J[0], np.ndarray) or isinstance(J[0], list), Jexhc_err_mesage
             # as it is now inputing positive J leads to atractive interaction
-            J[0] = np.array(J[0], dtype=float)*GHz/Hartree 
-            assert J[0].shape == (3,), Jexhc_err_mesage
+            Jexhc_err_mesage = f'Jexch must be of the followin form [[np.array([Jx,Jy,Jz],i,j], ...] or [[np.array([[Jxx,Jxy,Jxz],[..,],...],i,j], ...]  got {Jexch}'
+            assert isinstance(J[0], np.ndarray) or isinstance(J[0], list), Jexhc_err_mesage
+            if isinstance(J[0], list):
+                J[0] = np.array(J[0], dtype=float)
+            
+            assert J[0].shape == (3,) or J[0].shape == (3,3), Jexhc_err_mesage
+            
+            if J[0].shape == (3,):
+                J[0] = np.diag(J[0])
+
+            J[0] = np.einsum('ki, lj, kl -> ij', Gyro[J[1]], Gyro[J[2]], J[0])*GHz/Hartree
             J[1], J[2] = int(J[1]), int(J[2])
 
         # Unit converion 
-        Hlocal *= Gyro*BohrMagneton*1000/Hartree
+        for i in range(Nspin):
+            Hlocal[i] = np.dot(Gyro[i], Hlocal[i])*BohrMagneton*1000/Hartree
+        
         Stephen /= Hartree
         eps /= Hartree
         U /= Hartree
