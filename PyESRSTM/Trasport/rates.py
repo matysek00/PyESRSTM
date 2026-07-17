@@ -185,5 +185,5 @@ def sum_rates(GL, GR):
         G[:,:,:,:,NFL-NFR:NFR+NFL+1] += GR
     else: 
         G = GR.copy()
-        G[:,:,:,:,NFL-NFR:NFL+NFR+1] += GL
+        G[:,:,:,:,NFR-NFL:NFL+NFR+1] += GL
     return G
