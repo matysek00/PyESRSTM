@@ -9,7 +9,7 @@ allowed_methods = ['RK45', 'RK23', 'DOP853', 'BDF', ]
 real_only_mehods = ['Radau', 'LSODA']
 
 def propagate_density(GL: np.ndarray, GR: np.ndarray, Delta: np.ndarray, rho0: np.ndarray, tf: float, 
-                      frequency: float = None, adrive: np.ndarray = None, single_step_function = None,
+                      frequency: float = None, adrive: np.ndarray = None, drho_function = None,
                     return_all = False,  kwargs = None):
     """
     Propagate the density matrix in time
@@ -41,13 +41,19 @@ def propagate_density(GL: np.ndarray, GR: np.ndarray, Delta: np.ndarray, rho0: n
     if return_all is True, returns the full solution object from solve_ivp [A.u.].
     """
     
-    
+    Ndim = rho0.shape[0]
+    assert rho0.shape == (Ndim, Ndim), "rho0 must be a square matrix."
+    assert Delta.shape == (Ndim, Ndim), "Delta must be a square matrix, with the same dimension as rho0."
+    assert isinstance(tf, (float, np.float64, int, np.int64)), "tf must be a float."
+
     # Convert units to atomic units for the integration
     tf /= time_unit # Hart
     if frequency is not None:
-        frequency *= 2*np.pi*time_unit # Hart
+        frequency = frequency * 2*np.pi*time_unit # Hart (use multiplication, not in-place)
 
     if kwargs is not None:
+        # Create a copy to avoid modifying the original kwargs dict
+        kwargs = kwargs.copy()
         
         if 'method' in kwargs:
             method = kwargs['method']
@@ -58,28 +64,27 @@ def propagate_density(GL: np.ndarray, GR: np.ndarray, Delta: np.ndarray, rho0: n
         
         if 'max_step' in kwargs:
             kwargs['max_step'] /= time_unit # Hart
-    
-
-    
 
     # setup the propagation tensor
     #ML = QME_matrix_propagator(GL, Delta)
     #MR = QME_matrix_propagator(GR, Delta)
 
     # setup the integrant function for solve_ivp
-    if single_step_function is not None:
-        #assert len(M.shape) == 4, "M must have shape (Nstate, Nstate, Nstate, Nstate) when using adrive."
-        
+    if drho_function is not None:
+        assert GL.shape == (Ndim,Ndim,Ndim,Ndim,1), "GL must have shape (Nstate, Nstate, Nstate, Nstate, 1) when using adrive."
+        assert GR.shape == (Ndim,Ndim,Ndim,Ndim,1), "GR must have shape (Nstate, Nstate, Nstate, Nstate, 1) when using adrive."
+        assert drho_function.__code__.co_argcount == 4, "drho_function must have 4 arguments: t, rho, ML, MR."
+
         ML = QME_matrix_propagator(GL, np.zeros_like(Delta)) # delta can only be in included once
         MR = QME_matrix_propagator(GR, Delta)
-        integrant = lambda t, rho: single_step_function(t, rho.reshape(rho0.shape), ML[:,:,:,:,0], MR[:,:,:,:,0]).flatten()
+        integrant = lambda t, rho: drho_function(t, rho.reshape(rho0.shape), ML[:,:,:,:,0], MR[:,:,:,:,0]).flatten()
 
     elif adrive is not None:
         assert frequency is not None, "frequency must be provided when using adrive."
-        assert adrive is not None, "adrive must be provided when using adrive."
         assert isinstance(frequency, np.ndarray), "frequency must be a numpy array when using adrive."
         assert len(adrive) == len(frequency), "adrive and frequency must have the same length."
-        #assert len(M.shape) == 4, "M must have shape (Nstate, Nstate, Nstate, Nstate) when using adrive."
+        assert GL.shape == (Ndim,Ndim,Ndim,Ndim,1), "GL must have shape (Nstate, Nstate, Nstate, Nstate, 1) when using adrive."
+        assert GR.shape == (Ndim,Ndim,Ndim,Ndim,1), "GR must have shape (Nstate, Nstate, Nstate, Nstate, 1) when using adrive."
 
         ML = QME_matrix_propagator(GL, np.zeros_like(Delta)) # delta can only be in included once
         MR = QME_matrix_propagator(GR, Delta)
@@ -92,6 +97,10 @@ def propagate_density(GL: np.ndarray, GR: np.ndarray, Delta: np.ndarray, rho0: n
         #assert len(M.shape) == 5, "M must have shape (Nstate, Nstate, Nstate, Nstate, 2*Nfour+1) when using full Fourier."
         
         M = QME_matrix_propagator(sum_rates(GL, GR), Delta)
+        #ML = QME_matrix_propagator(GL, np.zeros_like(Delta)) # delta can only be in included once
+        #MR = QME_matrix_propagator(GR, Delta)
+        #M = sum_rates(ML, MR) # sum the left and right rates
+
         Nfour = (M.shape[-1] - 1) // 2
         Ns = np.arange(-Nfour, Nfour + 1)
         integrant = lambda t, rho: single_step_full_fourier(t, rho.reshape(rho0.shape), M, frequency, Ns).flatten()
