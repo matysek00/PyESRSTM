@@ -238,7 +238,8 @@ def rates_in_time(M: np.ndarray, freq: float, t: np.ndarray, Ns: np.ndarray):
     return np.tensordot(ent, M, axes=([-1], [-1]))
 
 
-def current_in_time(time: np.ndarray, rho: np.ndarray, G: np.ndarray, frequency: float):
+def current_in_time(time: np.ndarray, rho: np.ndarray, GC: np.ndarray, frequency: float = None, 
+                    adrive: np.ndarray = None, Gt_function: callable = None):
     """
     Evaluate the current at given time points
 
@@ -248,22 +249,43 @@ def current_in_time(time: np.ndarray, rho: np.ndarray, G: np.ndarray, frequency:
         The time points at which to evaluate the current.
     rho : array 
         The density matrix at the current time step with shape (Nstate, Nstate).
-    G : array
+    GC : array
         The rate matrix with shape (Nstate, Nstate, Nstate, Nstate, 2*Nfour+1), where Nstate is the dimension of the quantum dot Hilbert space
-    frequency : float
-        The frequency of the driving field.
-
+    frequency : float np.ndarray, optional
+        The frequency(ies) of the driving field. ndarray if adrive is used, float if full Fourier is used, not needed if Gt_function is used.
+    adrive : array, optional
+        The amplitudes of the driving field, with shape (2*Nfour+1,), where Nfour is the number of Fourier components. Not used if Gt_function is provided.
+    Gt_function : callable, optional
+        A function that takes in the rate matrix GC and time, and returns the time-dependent rate matrix Gt. GC(t) = Gt_function(GC, time) 
     Returns
     -------
     I_t : array
         The current evaluated at each time point, with shape (Ntime,).
     """
     
-    frequency *= 2*np.pi*time_unit # Hart
+    if frequency is not None:
+        frequency = frequency * 2*np.pi*time_unit # Hart
 
-    NF = (G.shape[-1] - 1) // 2
-    Ns = np.arange(-NF, NF + 1)
-    Gt = rates_in_time(G, frequency, time, Ns) # Hart
+    NF = (GC.shape[-1] - 1) // 2
+
+    if Gt_function is not None:
+        assert NF == 0, "Gt_function can only be used with a single Fourier component (NF=0)."
+        Gt = Gt_function(GC,time)
+
+    elif adrive is not None:
+        assert NF == 0, "adrive can only be used with a single Fourier component (NF=0)."
+        assert frequency is not None, "frequency must be provided when using adrive."
+        assert isinstance(frequency, np.ndarray), "frequency must be a numpy array when using adrive."
+        assert len(adrive) == len(frequency), "adrive and frequency must have the same length."
+
+        phase = 1 + np.sum(adrive*np.cos(frequency * time[:, None]), axis=1)
+        Gt = np.tensordot(phase[np.newaxis], GC, axes=([0], [-1]))
+
+    else:   
+        assert frequency is not None, "frequency must be provided when using full Fourier."
+        assert isinstance(frequency, (int, float)), "frequency must be a float when using full Fourier."
+        Ns = np.arange(-NF, NF + 1)
+        Gt = rates_in_time(GC, frequency, time, Ns) # Hart
 
     # a stands for time index
     I_t = np.einsum('aul,aljju -> a', rho, Gt)
