@@ -5,6 +5,13 @@ from scipy.integrate import solve_ivp
 from ..misc.units import *
 from PyESRSTM.Trasport.rates import sum_rates
 
+# import numba if it is available, otherwise define a dummy jit decorator
+try:
+    from numba import jit
+except ImportError:
+    def jit(func):
+        return func
+
 allowed_methods = ['RK45', 'RK23', 'DOP853', 'BDF', ]
 real_only_mehods = ['Radau', 'LSODA']
 
@@ -65,6 +72,8 @@ def propagate_density(GL: np.ndarray, GR: np.ndarray, Delta: np.ndarray, rho0: n
         if 'max_step' in kwargs:
             kwargs['max_step'] /= time_unit # Hart
 
+    if kwargs is None:
+        kwargs = {}
     # setup the propagation tensor
     #ML = QME_matrix_propagator(GL, Delta)
     #MR = QME_matrix_propagator(GR, Delta)
@@ -75,9 +84,11 @@ def propagate_density(GL: np.ndarray, GR: np.ndarray, Delta: np.ndarray, rho0: n
         assert GR.shape == (Ndim,Ndim,Ndim,Ndim,1), "GR must have shape (Nstate, Nstate, Nstate, Nstate, 1) when using adrive."
         assert drho_function.__code__.co_argcount == 4, "drho_function must have 4 arguments: t, rho, ML, MR."
 
-        ML = QME_matrix_propagator(GL, np.zeros_like(Delta)) # delta can only be in included once
-        MR = QME_matrix_propagator(GR, Delta)
-        integrant = lambda t, rho: drho_function(t, rho.reshape(rho0.shape), ML[:,:,:,:,0], MR[:,:,:,:,0]).flatten()
+        ML = QME_matrix_propagator(GL, np.zeros_like(Delta))[:,:,:,:,0].reshape(Ndim*Ndim, Ndim*Ndim) # delta can only be in included once
+        MR = QME_matrix_propagator(GR, Delta)[:,:,:,:,0].reshape(Ndim*Ndim, Ndim*Ndim)
+
+        def integrant(t, rho):
+            return drho_function(t, rho, ML, MR)
 
     elif adrive is not None:
         assert frequency is not None, "frequency must be provided when using adrive."
@@ -86,25 +97,27 @@ def propagate_density(GL: np.ndarray, GR: np.ndarray, Delta: np.ndarray, rho0: n
         assert GL.shape == (Ndim,Ndim,Ndim,Ndim,1), "GL must have shape (Nstate, Nstate, Nstate, Nstate, 1) when using adrive."
         assert GR.shape == (Ndim,Ndim,Ndim,Ndim,1), "GR must have shape (Nstate, Nstate, Nstate, Nstate, 1) when using adrive."
 
-        ML = QME_matrix_propagator(GL, np.zeros_like(Delta)) # delta can only be in included once
-        MR = QME_matrix_propagator(GR, Delta)
-        integrant = lambda t, rho: single_step_adrive(t, rho.reshape(rho0.shape), ML[:,:,:,:,0], MR[:,:,:,:,0], frequency, adrive).flatten()
+        ML = QME_matrix_propagator(GL, np.zeros_like(Delta))[:,:,:,:,0].reshape(Ndim*Ndim, Ndim*Ndim)
+        # delta can only be in included once
+        MR = QME_matrix_propagator(GR, Delta)[:,:,:,:,0].reshape(Ndim*Ndim, Ndim*Ndim)  
 
+        def integrant(t, rho):
+            return single_step_adrive(t, rho, ML, MR, frequency, adrive)
     else:
         
         assert frequency is not None, "frequency must be provided when using full Fourier."
         assert isinstance(frequency, float), "frequency must be a float when using full Fourier."
         #assert len(M.shape) == 5, "M must have shape (Nstate, Nstate, Nstate, Nstate, 2*Nfour+1) when using full Fourier."
         
-        M = QME_matrix_propagator(sum_rates(GL, GR), Delta)
-        #ML = QME_matrix_propagator(GL, np.zeros_like(Delta)) # delta can only be in included once
-        #MR = QME_matrix_propagator(GR, Delta)
-        #M = sum_rates(ML, MR) # sum the left and right rates
+        M = QME_matrix_propagator(sum_rates(GL, GR), Delta).reshape(Ndim*Ndim, Ndim*Ndim, -1)  
+        # reshape to (Nstate**2, Nstate**2, 2*Nfour+1)
 
         Nfour = (M.shape[-1] - 1) // 2
         Ns = np.arange(-Nfour, Nfour + 1)
-        integrant = lambda t, rho: single_step_full_fourier(t, rho.reshape(rho0.shape), M, frequency, Ns).flatten()
 
+        def integrant(t, rho):
+            return single_step_full_fourier(t, rho, M, frequency, Ns)
+    
     # solve the ODE
     solution = solve_ivp(integrant, (0, tf), rho0.flatten(), **kwargs)
 
@@ -161,9 +174,9 @@ def single_step_adrive(t, rho, ML, MR, frequencis, As):
     t: float
         The time.
     rho: array
-        The density matrix at the current time step with shape (Nstate, Nstate).
+        The density matrix at the current time step with shape (Nstate**2).
     M0: array
-        The time-propagation tensor with shape (Nstate, Nstate, Nstate, Nstate).
+        The time-propagation tensor with shape (Nstate**2, Nstate**2).
     frequencis: array
         The frequencies of the driving field.
     As: array
@@ -172,11 +185,12 @@ def single_step_adrive(t, rho, ML, MR, frequencis, As):
     Returns
     -------
     drho : array
-        The derivative of the density matrix with shape (Nstate, Nstate).
+        The derivative of the density matrix with shape (Nstate**2).
     """
+    #rho = rho_flat.reshape((Ndim, Ndim))
     phase = 1 + np.sum(As*np.cos(frequencis * t))
     M_t = MR + ML * phase
-    drho = np.einsum('ljvu,vu->lj', M_t, rho)
+    drho = M_t @ rho
 
     return drho
 
@@ -189,9 +203,9 @@ def single_step_full_fourier(t, rho, M, freq, Ns):
     t : float
         The time.
     rho : array
-        The density matrix at the current time step with shape (Nstate, Nstate).
+        The density matrix at the current time step with shape (Nstate**2,).
     M : array
-        The time-propagation tensor with shape (Nstate, Nstate, Nstate, Nstate, 2*Nfour+1), where Nstate is the dimension of the quantum dot Hilbert space.
+        The time-propagation tensor with shape (Nstate**2, Nstate**2, 2*Nfour+1), where Nstate is the dimension of the quantum dot Hilbert space.
     freq : float
         The frequency of the driving field.
     Ns : array
@@ -205,7 +219,7 @@ def single_step_full_fourier(t, rho, M, freq, Ns):
 
     phase = np.exp(1j * freq * Ns * t)
     M_t = np.tensordot(M, phase, axes=([-1], [0]))
-    drho = np.einsum('ljvu,vu->lj', M_t, rho)
+    drho = M_t @ rho   
     
     return drho
 
