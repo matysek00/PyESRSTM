@@ -306,7 +306,7 @@ def current_in_time(time: np.ndarray, rho: np.ndarray, GC: np.ndarray = None, fr
         Gt = rates_in_time(GC, frequency, time, Ns) # Hart
 
     # a stands for time index
-    I_t = np.einsum('aul,aljju -> a', rho, Gt)
+    I_t = 2*np.einsum('aul,aljju -> a', rho, Gt).real
 
     return I_t * pA
 
