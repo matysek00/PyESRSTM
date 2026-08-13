@@ -18,7 +18,7 @@ real_only_mehods = ['Radau', 'LSODA']
 def propagate_density(rho0: np.ndarray, tf: float, 
                       GL: np.ndarray = None, GR: np.ndarray = None, Delta: np.ndarray = None,  
                       frequency: float = None, adrive: np.ndarray = None, drho_function = None,
-                    return_all = False,  kwargs = None):
+                    return_all = False,  kwargs = None, verbose = False):
     """
     Propagate the density matrix in time
     d rho_lj /dt  = i Delta_lj rho_lj + ....
@@ -127,7 +127,8 @@ def propagate_density(rho0: np.ndarray, tf: float,
     # solve the ODE
     solution = solve_ivp(drho_function, (0, tf), rho0.ravel(), **kwargs)
 
-    print(f'Integration successful: {solution.success}, message: {solution.message}')
+    if verbose:
+        print(f'Integration successful: {solution.success}, message: {solution.message}')
     
     if return_all:
         return solution
