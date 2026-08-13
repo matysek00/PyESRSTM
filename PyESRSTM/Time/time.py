@@ -86,6 +86,8 @@ def propagate_density(rho0: np.ndarray, tf: float,
         
         if 'max_step' in kwargs:
             kwargs['max_step'] /= time_unit # Hart
+        if 't_eval' in kwargs:
+            kwargs['t_eval'] = kwargs['t_eval']/time_unit # Hart
 
     else:
         kwargs = {}
