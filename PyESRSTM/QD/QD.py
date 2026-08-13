@@ -35,9 +35,12 @@ class QD(QuSpinConvertors):
         The principal axes of the Stephen tensor of the atoms in the quantum dot. Should be shape (Nspin, 3). If None, it will be set to the z-axis.
     cuttof_energy : float
         The cutoff energy for the quantum dot. States with energy above this value will be ignored. [meV]
+    gyro_to_J : bool
+        If true, the exchange interaction will be transformed with the g-tensor. If False, it will be used as is. This is useful if the exchange interaction is already in the g-tensor basis.
+        Default is True.
     """
 
-    def __init__(self, eps: float, U: float, Spin: np.ndarray,  Hlocal: np.ndarray, Gyro: np.ndarray, Jexch: list = [], Stephen: np.ndarray=None, StephenAx: np.ndarray = None, cuttof_energy: float = np.inf, ):
+    def __init__(self, eps: float, U: float, Spin: np.ndarray,  Hlocal: np.ndarray, Gyro: np.ndarray, Jexch: list = [], Stephen: np.ndarray=None, StephenAx: np.ndarray = None, cuttof_energy: float = np.inf, gyro_to_J: bool = True):
         
         Spin = np.array(Spin, dtype=float)
         Hlocal = np.array(Hlocal, dtype=float)
@@ -81,11 +84,16 @@ class QD(QuSpinConvertors):
             
             assert J[0].shape == (3,) or J[0].shape == (3,3), Jexhc_err_mesage
             
+            J[1], J[2] = int(J[1]), int(J[2])
+
             if J[0].shape == (3,):
                 J[0] = np.diag(J[0])
-
-            J[0] = np.einsum('ki, lj, kl -> ij', Gyro[J[1]], Gyro[J[2]], J[0])*GHz/Hartree
-            J[1], J[2] = int(J[1]), int(J[2])
+            
+            if gyro_to_J:
+                J[0] = np.einsum('ki, lj, kl -> ij', Gyro[J[1]], Gyro[J[2]], J[0])
+            
+            J[0] = J[0]*GHz/Hartree
+            
 
         # Unit converion 
         for i in range(Nspin):
