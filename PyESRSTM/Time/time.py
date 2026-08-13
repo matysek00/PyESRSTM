@@ -15,28 +15,41 @@ except ImportError:
 allowed_methods = ['RK45', 'RK23', 'DOP853', 'BDF', ]
 real_only_mehods = ['Radau', 'LSODA']
 
-def propagate_density(GL: np.ndarray, GR: np.ndarray, Delta: np.ndarray, rho0: np.ndarray, tf: float, 
+def propagate_density(rho0: np.ndarray, tf: float, 
+                      GL: np.ndarray = None, GR: np.ndarray = None, Delta: np.ndarray = None,  
                       frequency: float = None, adrive: np.ndarray = None, drho_function = None,
                     return_all = False,  kwargs = None):
     """
     Propagate the density matrix in time
     d rho_lj /dt  = i Delta_lj rho_lj + ....
+
+    The propagation can be done in three different ways:
+    1. Using a custom drho_function that takes in the time, density matrix, and returns the derivative of the density matrix.
+    2. Using a time-dependent driving field with given frequencies and amplitudes (adrive) that multiply the static part of GL as GL * (1 + sum_i A_i cos(f_i t)).
+        Input GL, GR, Delta, frequency (array), and adrive. 
+    3. Using a full Fourier expansion of the rate matrices GL and GR, with a given frequency.
+        input GL, GR, Delta, and frequency (float).
+    
     Parameters
     ----------
-    GL, GR : array
-        The left and right rate matrices with shape (Nstate, Nstate, Nstate, Nstate, 2*Nfour+1), where Nstate is the dimension of the quantum dot Hilbert space [Hartree].
-    Delta : array
-        The energy difference matrix with shape (Nstate, Nstate) [Hartree].
-    frequency : float, or array
-        The frequency of the driving field [GHz]. if an arrya is given, the amplitudes of the driving field are given by adrive.
     rho0 : array
         The initial density matrix with shape (Nstate, Nstate).
     tf : float
         The final time for propagation [ns].
+    GL, GR : array, optional
+        The left and right rate matrices with shape (Nstate, Nstate, Nstate, Nstate, 2*Nfour+1), where Nstate is the dimension of the quantum dot Hilbert space [Hartree].
+    Delta : array, optional
+        The energy difference matrix with shape (Nstate, Nstate) [Hartree].
+    frequency : float, or array, optional
+        The frequency of the driving field [GHz]. if an arrya is given, the amplitudes of the driving field are given by adrive.
     adrive : array, optional
         The amplitudes of the driving field, with shape (2*Nfour+1,), where Nfour is the number of Fourier components.
+    drho_function : callable, optional
+        A function that takes in the time, density matrix, and the left and right rate matrices, and returns the derivative of the density matrix. This can be used to implement custom time-dependent driving. The function should have the signature drho_function(t: float, rho: np.ndarray) where t is time  in a.u. and rho is a flattened density matrix.
     return_all : bool, optional
         Whether to return the density matrix at all time points or just the final state. Default is False.
+    kwargs : dict, optional
+        Additional keyword arguments to pass to the ODE solver (solve_ivp). 
 
     Returns
     -------
@@ -50,12 +63,14 @@ def propagate_density(GL: np.ndarray, GR: np.ndarray, Delta: np.ndarray, rho0: n
     
     Ndim = rho0.shape[0]
     assert rho0.shape == (Ndim, Ndim), "rho0 must be a square matrix."
-    assert Delta.shape == (Ndim, Ndim), "Delta must be a square matrix, with the same dimension as rho0."
+    
     assert isinstance(tf, (float, np.float64, int, np.int64)), "tf must be a float."
+    tf = tf/time_unit # Hart
 
-    # Convert units to atomic units for the integration
-    tf /= time_unit # Hart
-    if frequency is not None:
+    # check that the inputs are consistent
+    if drho_function is None:
+        assert GL is not None and GR is not None and Delta is not None and frequency is not None, "GL, GR, Delta, and frequency must be provided when drho_function is not provided."
+        assert Delta.shape == (Ndim, Ndim), "Delta must be a square matrix, with the same dimension as rho0."
         frequency = frequency * 2*np.pi*time_unit # Hart (use multiplication, not in-place)
 
     if kwargs is not None:
@@ -72,26 +87,18 @@ def propagate_density(GL: np.ndarray, GR: np.ndarray, Delta: np.ndarray, rho0: n
         if 'max_step' in kwargs:
             kwargs['max_step'] /= time_unit # Hart
 
-    if kwargs is None:
+    else:
         kwargs = {}
-    # setup the propagation tensor
-    #ML = QME_matrix_propagator(GL, Delta)
-    #MR = QME_matrix_propagator(GR, Delta)
-
-    # setup the integrant function for solve_ivp
+    
+    
     if drho_function is not None:
-        assert GL.shape == (Ndim,Ndim,Ndim,Ndim,1), "GL must have shape (Nstate, Nstate, Nstate, Nstate, 1) when using adrive."
-        assert GR.shape == (Ndim,Ndim,Ndim,Ndim,1), "GR must have shape (Nstate, Nstate, Nstate, Nstate, 1) when using adrive."
-        assert drho_function.__code__.co_argcount == 4, "drho_function must have 4 arguments: t, rho, ML, MR."
+        # check the drho_function signature and output shape
+        assert drho_function.__code__.co_argcount == 2, "drho_function must have 2 arguments: t, rho."
+        test_drho = drho_function(0, np.zeros((Ndim*Ndim,), dtype=complex))
+        assert test_drho.shape == (Ndim*Ndim,), "drho_function must return an array of shape (Nstate**2,)."
 
-        ML = QME_matrix_propagator(GL, np.zeros_like(Delta))[:,:,:,:,0].reshape(Ndim*Ndim, Ndim*Ndim) # delta can only be in included once
-        MR = QME_matrix_propagator(GR, Delta)[:,:,:,:,0].reshape(Ndim*Ndim, Ndim*Ndim)
-
-        def integrant(t, rho):
-            return drho_function(t, rho, ML, MR)
-
+    # otherwise setup the integrant function for solve_ivp
     elif adrive is not None:
-        assert frequency is not None, "frequency must be provided when using adrive."
         assert isinstance(frequency, np.ndarray), "frequency must be a numpy array when using adrive."
         assert len(adrive) == len(frequency), "adrive and frequency must have the same length."
         assert GL.shape == (Ndim,Ndim,Ndim,Ndim,1), "GL must have shape (Nstate, Nstate, Nstate, Nstate, 1) when using adrive."
@@ -101,25 +108,24 @@ def propagate_density(GL: np.ndarray, GR: np.ndarray, Delta: np.ndarray, rho0: n
         # delta can only be in included once
         MR = QME_matrix_propagator(GR, Delta)[:,:,:,:,0].reshape(Ndim*Ndim, Ndim*Ndim)  
 
-        def integrant(t, rho):
+        # minor speedup could be acchived by moving the single step function definition straight here, to avaoid the function call overhead, but the readability would suffer.
+        def drho_function(t, rho):
             return single_step_adrive(t, rho, ML, MR, frequency, adrive)
     else:
-        
-        assert frequency is not None, "frequency must be provided when using full Fourier."
         assert isinstance(frequency, float), "frequency must be a float when using full Fourier."
-        #assert len(M.shape) == 5, "M must have shape (Nstate, Nstate, Nstate, Nstate, 2*Nfour+1) when using full Fourier."
         
         M = QME_matrix_propagator(sum_rates(GL, GR), Delta).reshape(Ndim*Ndim, Ndim*Ndim, -1)  
         # reshape to (Nstate**2, Nstate**2, 2*Nfour+1)
 
         Nfour = (M.shape[-1] - 1) // 2
         Ns = np.arange(-Nfour, Nfour + 1)
-
-        def integrant(t, rho):
+        
+        # minor speedup could be acchived by moving the single step function definition straight here, to avaoid the function call overhead, but the readability would suffer.
+        def drho_function(t, rho):
             return single_step_full_fourier(t, rho, M, frequency, Ns)
     
     # solve the ODE
-    solution = solve_ivp(integrant, (0, tf), rho0.flatten(), **kwargs)
+    solution = solve_ivp(drho_function, (0, tf), rho0.ravel(), **kwargs)
 
     print(f'Integration successful: {solution.success}, message: {solution.message}')
     
@@ -252,7 +258,7 @@ def rates_in_time(M: np.ndarray, freq: float, t: np.ndarray, Ns: np.ndarray):
     return np.tensordot(ent, M, axes=([-1], [-1]))
 
 
-def current_in_time(time: np.ndarray, rho: np.ndarray, GC: np.ndarray, frequency: float = None, 
+def current_in_time(time: np.ndarray, rho: np.ndarray, GC: np.ndarray = None, frequency: float = None, 
                     adrive: np.ndarray = None, Gt_function: callable = None):
     """
     Evaluate the current at given time points
@@ -277,18 +283,16 @@ def current_in_time(time: np.ndarray, rho: np.ndarray, GC: np.ndarray, frequency
         The current evaluated at each time point, with shape (Ntime,).
     """
     
-    if frequency is not None:
+    if Gt_function is None:
+        assert GC is not None and frequency is not None, "GC and frequency must be provided if Gt_function is not provided."
         frequency = frequency * 2*np.pi*time_unit # Hart
-
-    NF = (GC.shape[-1] - 1) // 2
+        NF = (GC.shape[-1] - 1) // 2
 
     if Gt_function is not None:
-        assert NF == 0, "Gt_function can only be used with a single Fourier component (NF=0)."
-        Gt = Gt_function(GC,time)
-
+        Gt = Gt_function(time)
+    
     elif adrive is not None:
         assert NF == 0, "adrive can only be used with a single Fourier component (NF=0)."
-        assert frequency is not None, "frequency must be provided when using adrive."
         assert isinstance(frequency, np.ndarray), "frequency must be a numpy array when using adrive."
         assert len(adrive) == len(frequency), "adrive and frequency must have the same length."
 
