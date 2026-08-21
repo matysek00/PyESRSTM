@@ -21,8 +21,8 @@ def ESR(EL_left: Electrode, EL_right: Electrode,
     freqL = 0 if EL_left.Vrf ==0 else rate_freq
     freqR = 0 if EL_right.Vrf ==0 else rate_freq
     
-    GLminus, GLplus = rates(dot, EL_left, freqL, NFL)
-    GRminus, GRplus = rates(dot, EL_right, freqR, NFR)
+    GLplus, GLminus = rates(dot, EL_left, freqL, NFL)
+    GRplus, GRminus = rates(dot, EL_right, freqR, NFR)
 
     # make sure we add to the correct Floquet component
     GL = GLminus + GLplus
