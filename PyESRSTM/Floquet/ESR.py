@@ -13,9 +13,27 @@ def ESR(EL_left: Electrode, EL_right: Electrode,
 
     Parameters:
     EL_left, EL_right: (Electrode) 
-        Electrodes the 
+        Electrodes the dot is coupled to.
+    dot: (QD)
+        Quantum dot object.
+    frequencies: (np.ndarray)
+        Frequencies at which to calculate the ESR signal.
+    NFL, NFR: (int)
+        Number of Fourier components to consider for the left and right electrodes, respectively.
+    return_Gs: (bool)
+        If True, also return the rates GL and GR and the density matrix rho.
+    rate_freq: (float)
+        Frequency at which to calculate the rates. If None, use the maximum absolute value of frequencies
     
+    Returns:
+    I: (np.ndarray)
+        ESR signal (current) at the specified frequencies.
+    GL, GR: (np.ndarray)
+        Rates for the left and right electrodes, respectively (only if return_Gs is True).
+    rho: (np.ndarray)
+        Density matrix of the system for the final frequency (only if return_Gs is True).   
     """
+    
     if rate_freq is None:
         rate_freq = np.max(np.abs(frequencies))
     freqL = 0 if EL_left.Vrf ==0 else rate_freq
@@ -39,7 +57,7 @@ def ESR(EL_left: Electrode, EL_right: Electrode,
         I[i] = current(rho,GC)
     
     if return_Gs:
-        return I, GL, GR
+        return I, GL, GR, rho
     
     return I
 
