@@ -35,12 +35,49 @@ class QD(QuSpinConvertors):
         The principal axes of the Stephen tensor of the atoms in the quantum dot. Should be shape (Nspin, 3). If None, it will be set to the z-axis.
     cuttof_energy : float
         The cutoff energy for the quantum dot. States with energy above this value will be ignored. [meV]
-    gyro_to_J : bool
-        If true, the exchange interaction will be transformed with the g-tensor. If False, it will be used as is. This is useful if the exchange interaction is already in the g-tensor basis.
-        Default is True.
+
+    Attributes
+    ----------
+    eps : float
+        The energy of the quantum dot [Hartree].
+    U : float
+        The charging energy of the quantum dot [Hartree].
+    theta : float
+        The angle of the local magnetic field on the central spin [rad].
+    Nspin : int
+        The number of spins in the quantum dot.
+    cutoff_energy : float
+        The cutoff energy for the quantum dot. States with energy above this value will be ignored.
+    Nstate : int
+        The number of states in the quantum dot.
+    Energies : array_like(Nstate,)
+        The energies of the states in the quantum dot [Hartree].
+    Occupancy : array_like(Nstate,)
+        The occupancy of the states in the quantum dot. 0 for empty, 1 for singly occupied, 2 for doubly occupied.
+    Spin_central : array_like(Nstate, 3)
+        The expected spin of the central spin in the states of the quantum dot.
+    Spin_total : array_like(Nstate, 3)
+        The expected total spin of the states in the quantum dot.
+    lamb : array_like(Nstate, Nstate, 2)
+        The matrix elements of the spin operators between the states of the quantum dot. lamb[i,j,0] is the matrix element of S_- between states i and j, and lamb[i,j,1] is the matrix element of S_+ between states i and j.
+    Delta : array_like(Nstate, Nstate)
+        The energy differences between the states of the quantum dot.
+
+    Methods
+    -------
+    Spin(state_idx, theta=0, phi=0, spin_idx=None)
+        Calculates the expected spin of a given state in the quantum dot. The direction of the operator is given by theta and phi. The default direction is along the z axis. 
+    SpinSquare(state_idx, spin_idx=None)
+        Calculates the expected spin squared of a given state in the quantum dot. The default direction is along the z axis. 
+    CalcAllSpin()
+        Calculates the expected spin of all states in the quantum dot. The direction of the operator is given by theta and phi. The default direction is along the z axis. 
+    remove_states(states: np.array)
+        Removes the states with the given indices from the quantum dot. The states are removed from the Energies, Occupancy, Spin_central, Spin_total, lamb, and Delta
+    print_lamb(tol=1e-5)
+        Prints the non-zero elements of the lamb matrix. The elements with absolute value less than tol are ignored. The output is in the form of a string with the format: "i j s lamb[i,j,s]", where i and j are the indices of the states, s is the spin operator (0 for S_-, 1 for S_+), and lamb[i,j,s] is the matrix element of the spin operator between states i and j.
     """
 
-    def __init__(self, eps: float, U: float, Spin: np.ndarray,  Hlocal: np.ndarray, Gyro: np.ndarray, Jexch: list = [], Stephen: np.ndarray=None, StephenAx: np.ndarray = None, cuttof_energy: float = np.inf, gyro_to_J: bool = True):
+    def __init__(self, eps: float, U: float, Spin: np.ndarray,  Hlocal: np.ndarray, Gyro: np.ndarray, Jexch: list = [], Stephen: np.ndarray=None, StephenAx: np.ndarray = None, cuttof_energy: float = np.inf):
         
         Spin = np.array(Spin, dtype=float)
         Hlocal = np.array(Hlocal, dtype=float)
@@ -88,9 +125,6 @@ class QD(QuSpinConvertors):
 
             if J[0].shape == (3,):
                 J[0] = np.diag(J[0])
-            
-            if gyro_to_J:
-                J[0] = np.einsum('ki, lj, kl -> ij', Gyro[J[1]], Gyro[J[2]], J[0])
             
             J[0] = J[0]*GHz/Hartree
             
