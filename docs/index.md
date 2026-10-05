@@ -264,24 +264,25 @@ PyESRSTM is a simulation package for quantum-dot ESR and transport problems. It 
 The package is most useful for studying the non-equilibrium spin physics of nanoscale quantum dots, especially under microwave drive and bias conditions.
 
 ## Citation
-
-If you use this software, please cite the original methodology paper with A-driving:
+If you use this software, please cite the original methodology paper with A-driving, and QuSpin paper that is used to solve the eigenstates of the isolated quantum dot:
 
 Reina-Gálvez, J., Lorente, N., Delgado, F., & Arrachea, L. (2021). All-electric electron spin resonance studied by means of Floquet quantum master equations. Physical Review B, 104(24), 245435. https://doi.org/10.1103/PHYSREVB.104.245435
 
+Weinberg, P., & Bukov, M. (2017). QuSpin: A Python package for dynamics and exact diagonalisation of quantum many body systems Part I: Spin chains. SciPost Physics, 2(1), 003. https://doi.org/10.21468/SCIPOSTPHYS.2.1.003
+
 If you are using the RF driving also include this paper:
 
-M. Nachtigall, J. Reina-Galvez, C. Wolf, N. Lorente "The effects of an alternating bias on a single orbital spin impurity" 
-I preparation (2026)
+M. Nachtigall, J. Reina-Galvez, C. Wolf, N. Lorente "The effects of an alternating bias on a single orbital spin impurity", 
+In preparation (2026)
 
-If you are using spin dynamics descriptors please cite 
+If you are using spin dynamics descriptors please cite: 
 
 Reina-Gálvez, J., Nachtigall, M., Lorente, N., Martinek, J., & Wolf, C. (2025). Contrasting exchange-field and spin-transfer torque driving mechanisms in all-electric electron spin resonance. Physical Review B, 112(24), 245408. https://doi.org/10.1103/nzhr-syhs
 
 BibTeX:
 
 ```bibtex
-@article{delavarga2021,
+@article{Reina-Galvez2021,
   title = {All-electric electron spin resonance studied by means of Floquet quantum master equations},
   author = {Reina-Galvez J., Lorente N., Delgado F., Arrachea L.},
   journal = {Physical Review B},
@@ -290,13 +291,24 @@ BibTeX:
   year = {2021},
   doi = {10.1103/PhysRevB.104.245435}
 }
-@article{Reina-Glvez2025,
+@article{Weinberg2017,
+   title = {QuSpin: A Python package for dynamics and exact diagonalisation of quantum many body systems Part I: Spin chains},
+   author = {Phillip Weinberg and Marin Bukov},
+   doi = {10.21468/SCIPOSTPHYS.2.1.003},
+   journal = {SciPost Physics},
+   pages = {003},
+   publisher = {SciPost Foundation},
+   volume = {2},
+   year = {2017}
+}
+
+@article{Reina-Galvez2025,
+   title = {Contrasting exchange-field and spin-transfer torque driving mechanisms in all-electric electron spin resonance},
    author = {Jose Reina-Gálvez and Matyas Nachtigall and Nicolás Lorente and Jan Martinek and Christoph Wolf},
    doi = {10.1103/nzhr-syhs},
    journal = {Physical Review B},
    pages = {245408},
-   title = {Contrasting exchange-field and spin-transfer torque driving mechanisms in all-electric electron spin resonance},
    volume = {112},
    year = {2025}
 }
-
+```

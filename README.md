@@ -55,7 +55,7 @@ python -m pip install numpy scipy matplotlib quspin jupyter
 
 ```python
 import numpy as np
-import matplotlib.pyplot
+import matplotlib.pyplot as plt
 import PyESRSTM
 
 # Create a single-spin quantum dot
@@ -76,7 +76,11 @@ Left = PyESRSTM.Electrode(-25, 4, 0.5, 1.25e-3, 1e-1, 4.5, Nint=1e4, Cutoff=1000
 # ESR sweep
 freq = np.linspace(16.5, 17.5, 1000)
 I = PyESRSTM.ESR.ESR(Left, Right, dot, freq, NFL=1)
+
 plt.plot(freq, I)
+plt.xlabel(r'$\omega/2\pi$')
+plt.ylabel('I [pA]')
+plt.show()
 ```
 
 ## Tutorials
@@ -86,7 +90,6 @@ The repository includes Jupyter notebooks in the `Tutorial/` directory that walk
 - `Tutorial/01-single-spin.ipynb` — single-spin quantum dot and ESR basics
 - `Tutorial/02-Time-propagation.ipynb` — time propagation and transient dynamics
 - `Tutorial/two-spin.ipynb` — two-spin systems and multi-resonance behavior
-- additional notebooks cover parameter dependence, harmonic structure, and related topics (not wel documented)
 
 These notebooks are the best place to start if you want to understand how the simulation tools are used in practice.
 
@@ -122,3 +125,52 @@ PyESRSTM/
 
 This package is intended for research in quantum transport and ESR of nanoscale spin systems. The notebooks in `Tutorial/` are especially useful for understanding the conventions and units used throughout the code.
 
+## Citing
+If you use this software, please cite the original methodology paper with A-driving, and QuSpin paper that is used to solve the eigenstates of the isolated quantum dot:
+
+Reina-Gálvez, J., Lorente, N., Delgado, F., & Arrachea, L. (2021). All-electric electron spin resonance studied by means of Floquet quantum master equations. Physical Review B, 104(24), 245435. https://doi.org/10.1103/PHYSREVB.104.245435
+
+Weinberg, P., & Bukov, M. (2017). QuSpin: A Python package for dynamics and exact diagonalisation of quantum many body systems Part I: Spin chains. SciPost Physics, 2(1), 003. https://doi.org/10.21468/SCIPOSTPHYS.2.1.003
+
+If you are using the RF driving also include this paper:
+
+M. Nachtigall, J. Reina-Galvez, C. Wolf, N. Lorente "The effects of an alternating bias on a single orbital spin impurity", 
+In preparation (2026)
+
+If you are using spin dynamics descriptors please cite: 
+
+Reina-Gálvez, J., Nachtigall, M., Lorente, N., Martinek, J., & Wolf, C. (2025). Contrasting exchange-field and spin-transfer torque driving mechanisms in all-electric electron spin resonance. Physical Review B, 112(24), 245408. https://doi.org/10.1103/nzhr-syhs
+
+BibTeX:
+
+```bibtex
+@article{Reina-Galvez2021,
+  title = {All-electric electron spin resonance studied by means of Floquet quantum master equations},
+  author = {Reina-Galvez J., Lorente N., Delgado F., Arrachea L.},
+  journal = {Physical Review B},
+  volume = {104},
+  pages = {245435},
+  year = {2021},
+  doi = {10.1103/PhysRevB.104.245435}
+}
+@article{Weinberg2017,
+   title = {QuSpin: A Python package for dynamics and exact diagonalisation of quantum many body systems Part I: Spin chains},
+   author = {Phillip Weinberg and Marin Bukov},
+   doi = {10.21468/SCIPOSTPHYS.2.1.003},
+   journal = {SciPost Physics},
+   pages = {003},
+   publisher = {SciPost Foundation},
+   volume = {2},
+   year = {2017}
+}
+
+@article{Reina-Galvez2025,
+   title = {Contrasting exchange-field and spin-transfer torque driving mechanisms in all-electric electron spin resonance},
+   author = {Jose Reina-Gálvez and Matyas Nachtigall and Nicolás Lorente and Jan Martinek and Christoph Wolf},
+   doi = {10.1103/nzhr-syhs},
+   journal = {Physical Review B},
+   pages = {245408},
+   volume = {112},
+   year = {2025}
+}
+```
