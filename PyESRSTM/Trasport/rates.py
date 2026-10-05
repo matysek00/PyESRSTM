@@ -177,6 +177,22 @@ def rates(QD, Electrode, frequency: float, Nfour: int, verbose: bool = False):
                 
 
 def sum_rates(GL, GR):
+    """
+    Sum the rates from the left and right electrodes, taking into account the different number of Floquet sidebands in each electrode.
+
+    Parameters
+    ----------
+    GL : np.ndarray
+        The rate matrix from the left electrode.
+    GR : np.ndarray
+        The rate matrix from the right electrode.
+
+    Returns
+    -------
+    G : np.ndarray
+        The summed rate matrix.
+    """
+    
     NFL = int((GL.shape[-1]-1)/2)
     NFR = int((GR.shape[-1]-1)/2)
     

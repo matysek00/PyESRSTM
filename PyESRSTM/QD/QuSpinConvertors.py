@@ -2,6 +2,9 @@ import numpy as np
 from quspin.operators import hamiltonian
 
 class QuSpinConvertors():
+    """
+    A class for converting between different spin representations. 
+    """
     coords = ['x', 'y', 'z']
     
     ### The following methods convert the old format of arrays to a Qspin notation. 

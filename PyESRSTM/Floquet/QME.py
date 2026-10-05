@@ -67,7 +67,10 @@ def QME_matrix(G, Delta,):
 
     return M
 
-def QME_constrstants(Ndim, NFtotal, M):
+def QME_constraints(Ndim, NFtotal, M):
+    """Set the boundary conditions for the QME matrix M.
+    This function modifies the QME matrix M to enforce the trace condition on the density matrix.
+    """
     M[0,0] = 0
     
     for n in range(NFtotal):
@@ -123,7 +126,7 @@ def QME(G: np.ndarray, frequency: float , qme_matrix: bool = False, Delta: np.nd
         M = G.copy()
 
     M += QME_freq_cont(frequency, Ndim, NF)
-    M = QME_constrstants(Ndim, NFtotal, M)
+    M = QME_constraints(Ndim, NFtotal, M)
     Nmat = Ndim**2 * NFtotal
     M = M.reshape((Nmat, Nmat))
 

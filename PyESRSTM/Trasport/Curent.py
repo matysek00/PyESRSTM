@@ -1,6 +1,22 @@
 import numpy as np 
 from ..misc.units import pA 
 def current(rho, G):
+    """
+    Calculates the current through a quantum dot.
+
+    Parameters
+    ----------
+    rho : np.ndarray
+        The density matrix of the quantum dot.
+    G : np.ndarray
+        The Green's function of the quantum dot.
+
+    Returns
+    -------
+    I : np.ndarray
+        The current through the quantum dot.
+    """
+
     NFT  = rho.shape[-1]
     Ndim = rho.shape[0]
     NF = int((NFT -1)/2)
