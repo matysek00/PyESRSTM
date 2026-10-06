@@ -3,7 +3,7 @@ import numpy as np
 def Bexch(G, theta, n=0):
     """
     Calculate the exchange field Bexch for a spin-1/2 system from the rates G and angle theta.
-    B_exch = Im(G{1,2,2,0} + G{1,3,3,0} + G{0,2,2,1} + G{0,3,3,1}) / sin(theta)
+    B_{xc} = \frac{2 \sum_{v=0,2} \Im{\Gamma_{evvg}}}{g\mu_B \sin \theta}
     """
     assert G.shape[:-1] == (4,4,4,4), "G must be a (4,4,4,4,Nfour) tensor corresponding to a spin-1/2 system got shape {}".format(G.shape)
 
@@ -14,7 +14,7 @@ def Bexch(G, theta, n=0):
 def Trel(G, n=0):
     """
     Calculate the relaxation rate Trel for a spin-1/2 system from the rates G.
-    T_rel = Re(G{0,2,2,0} + G{0,3,3,0} + G{1,2,2,1} + G{1,3,3,1})
+    frac{1}{\tau_{rel}} = \frac{1}{\hbar} \sum_{v=0,2} \Re\{\Gamma^{0}_{gvvg} + \Gamma^{0}_{evve}\}
     """
     assert G.shape[:-1] == (4,4,4,4), "G must be a (4,4,4,4,Nfour) tensor corresponding to a spin-1/2 system got shape {}".format(G.shape)
 
@@ -27,7 +27,8 @@ def Trel(G, n=0):
 def Szacc(G, rho, theta, n=0):
     """
     Calculate the accumulated spin polarization Sz for a spin-1/2 system from the rates G, density matrix rho, and angle theta.
-    Sz_acc = sum_m [ G{0,1,1,0;n-m} - G{0,0,0,0;n-m} ] rho{2,2,m} + [ G{2,1,1,2;n-m} - G{2,0,0,2;n-m} ] rho{3,3,m} - [ G{0,3,3,0;n-m} - G{1,3,3,1;n-m} + G{0,2,2,0;n-m} - G{1,2,2,1;n-m} ] (rho{2,2,m} + rho{3,3,m})/2
+
+    Sz_n = 2 \sum_{\alpha,m} P_\alpha [\Re \{\Gamma^{+0}_{0gg0,n-m}\}\rho_{00,m} - \Re\{\Gamma^{-0}_{2gg2,n-m}\}\rho_{22,m} + \Re\{\Gamma^{-0}_{g22g,n-m} - \Gamma^{+0}_{g00g,n-m}\}(1-\rho_{00,m}-\rho_{22,m})/2 ]
     """
     
     assert G.shape[:-1] == (4,4,4,4), "G must be a (4,4,4,4,Nfour) tensor corresponding to a spin-1/2 system got shape {}".format(G.shape)
@@ -48,6 +49,8 @@ def Szacc(G, rho, theta, n=0):
         G1 = ((G[0,3,3,0, n-m+nmax] - G[1,3,3,1, n-m+nmax]) + (G[0,2,2,0, n-m+nmax] - G[1,2,2,1,n-m+nmax]))/np.cos(theta)
 
         szacc +=  G0*rho[2,2,m+nmax] + G2*rho[3,3,m+nmax] - G1*(rho[2,2,m+nmax] +rho[3,3,m+nmax])/2
+
+        # from the term (1-rho00-rho22)/2 the term 1 is added to the sum, but only for m=0, since 1 doesn't oscillate
         if m == 0:
             szacc += G1/2
 
