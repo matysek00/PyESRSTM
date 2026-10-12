@@ -163,6 +163,7 @@ class QD(QuSpinConvertors):
     def setup_ham(self, Spin, Jexch, Hlocal):
         # first solve including all spins (asume the central atoms has a finite spin)
         basis_neutral, E_neutral, V_neutral = QD.solve_spin_ham(self.Nspin, Spin, Jexch, Hlocal)
+        
         Nm = int(basis_neutral.Ns/2)
         # WARNINNG HARDCODING
         #V_neutral[:,0] = -V_neutral[:,0]
@@ -182,26 +183,48 @@ class QD(QuSpinConvertors):
         Energies = np.concatenate((E_neutral + self.eps, E_charged, E_charged + self.U + 2*self.eps))
         Nstate = len(Energies)
         assert Nstate == 4*Nm, 'Basis sizes don\'t match the number of states.'
+        
+        V_neutral *= (np.abs(V_neutral[0])/ V_neutral[0])[None,:] # fix the phase of the first state to be real and positive
+    
+        # lambda_{lj,s}= <l| (\sum_m |0,m><s,m| +  |-s,m>< 2,m| )|j>    
+        V_simple=np.array([[1,0],[0,1]], dtype=complex)
+        V_expanded = np.kron(V_simple,V_charged)
+
+        lamb = np.zeros((Nstate, Nstate, 2), dtype=complex)       
+        for l in range(Nm): 
+            for j in range(2*Nm): 
+                #print(V_charged_up[:,l], V_neutral[:,j])
+                # lamb[0xm, 1xm, up] = <l|\sum_m |0,m><up,m|j>
+                #lamb[l+2*Nm, j, 0] += np.conj(V_charged_up[:,l]) @ V_neutral[:,j]
+                lamb[l+2*Nm, j, 0] += np.conj(V_expanded[:,l]) @ V_neutral[:,j]
+                # lamb[0xm, 1xm, down] = <l|\sum_m |0,m><down,m|j>
+                lamb[l+2*Nm, j, 1] += np.conj(V_expanded[:,l+Nm]) @ V_neutral[:,j]
+
+                
+                # lamb[1xm, 2xm, up] = <j|\sum|down,m>< 2,m||l >$
+                lamb[j, l+3*Nm, 0] += np.conj(V_neutral[:,j]) @ V_expanded[:,l+Nm]
+                # lamb[1xm, 2xm, down] = <j|\sum|up,m>< 2,m||l >$
+                lamb[j, l+3*Nm, 1] += np.conj(V_neutral[:,j]) @ V_expanded[:,l] 
 
         # now we calculate lambda
-        lamb = np.zeros((Nstate, Nstate,2), dtype=complex)        
-        for i in range(Nm): # charged
-            for j in range(2*Nm): # singly occupied
-                # states
-                for m in range(Nm):
-                    # the basis is the same for charged and neutral but for 
-                    # neutral we have extra spin degree of freeedon
-                    # 0 to 1
-                    lamb[i+2*Nm,j,0] += np.conj(V_charged[m,i])*V_neutral[m,    j] # spin down
-                    lamb[i+2*Nm,j,1] += np.conj(V_charged[m,i])*V_neutral[m+Nm, j] # spin_up
-                    #lamb[i+2*Nm,j,0] += np.conj(V_charged[m,i])*V_neutral[m,    j] # spin down
-                    #lamb[i+2*Nm,j,1] += np.conj(V_charged[m,i])*V_neutral[m,    j] # spin_up
-                    # +2*Nm moves to unocupied sub space, +3 nm to doubly occupied
-                    # +Nm flips the central spin 
-                    
-                    # 2 to 1
-                    lamb[j, i+3*Nm,0] += np.conj(V_neutral[m+Nm, j])*V_charged[m,i] # spin down
-                    lamb[j, i+3*Nm,1] += np.conj(V_neutral[m,    j])*V_charged[m,i] # spin up
+        
+#        for i in range(Nm): # charged
+#            for j in range(2*Nm): # singly occupied
+#                # states
+#                for m in range(Nm):
+#                    # the basis is the same for charged and neutral but for 
+#                    # neutral we have extra spin degree of freeedon
+#                    # 0 to 1
+#                    lamb[i+2*Nm,j,0] += np.conj(V_charged[m,i])*V_neutral[m,    j] # spin down
+#                    lamb[i+2*Nm,j,1] += np.conj(V_charged[m,i])*V_neutral[m+Nm, j] # spin_up
+#                    #lamb[i+2*Nm,j,0] += np.conj(V_charged[m,i])*V_neutral[m,    j] # spin down
+#                    #lamb[i+2*Nm,j,1] += np.conj(V_charged[m,i])*V_neutral[m,    j] # spin_up
+#                    # +2*Nm moves to unocupied sub space, +3 nm to doubly occupied
+#                    # +Nm flips the central spin 
+#                    
+#                    # 2 to 1
+#                    lamb[j, i+3*Nm,0] += np.conj(V_neutral[m+Nm, j])*V_charged[m,i] # spin down
+#                    lamb[j, i+3*Nm,1] += np.conj(V_neutral[m,    j])*V_charged[m,i] # spin up
         
         # calculate expected spin on the central site and total spin
         S_central = np.zeros((2*Nm, 3))
