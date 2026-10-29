@@ -59,26 +59,12 @@ def Szacc(G, rho, theta, n=0):
     # G{g00g} - G{e00e} = G0{g00g}(1-P cos) - G0{e00e}(1+P cos) = -2 P G0{g00g} cos
     G1 = ((G[0,3,3,0,:] - G[1,3,3,1,:]) + (G[0,2,2,0,:] - G[1,2,2,1,:]))/np.cos(theta)
 
-    # take the real part, note the np.real function is only there to change the type of the array from complex to float
+    # take the real part
     G0 = (G0 + np.conj(G0[::-1]))/2
     G2 = (G2 + np.conj(G2[::-1]))/2
     G1 = (G1 + np.conj(G1[::-1]))/2
 
-    #G0 = np.zeros_like(G0)
-    #G2 = np.zeros_like(G2)
-    #G1 = np.zeros_like(G1)
-    print(np.round(G0, 9))#,rho[2,2,1])
-    print(np.round(G2, 9))#,rho[3,3,1])
-    print()
-
-    #print(rho[2,2,:])
-    #print(rho[3,3,:])
-    #print()
-
     for m in range(max(n-nmax,-nmax), min(n+nmax,nmax)+1):
-        szacc +=  G0[n-m+nmax]*rho[2,2,m+nmax] + G2[n-m+nmax]*rho[3,3,m+nmax] - G1[n-m+nmax]*(rho[2,2,m+nmax] + rho[3,3,m+nmax])/2
-
-        if m == 0:
-            szacc += G1[n-m+nmax]/2
+        szacc +=  G0[n-m+nmax]*rho[2,2,m+nmax] + G2[n-m+nmax]*rho[3,3,m+nmax] + G1[n-m+nmax]*(rho[0,0,m+nmax] + rho[1,1,m+nmax])/2
 
     return np.real(szacc)
